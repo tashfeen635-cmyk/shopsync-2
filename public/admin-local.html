@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopSync Admin (Local Dev)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Admin Dashboard - No login required for local dev -->
+  <div class="p-6 container mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">LOCAL DEV MODE</span>
+        <a href="/" class="text-purple-600 hover:underline text-sm ml-4">Back to Shop</a>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <button id="openAdd" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        + Add Product
+      </button>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr class="border-b">
+            <th class="p-3">Image</th>
+            <th class="p-3">Title</th>
+            <th class="p-3">Price</th>
+            <th class="p-3">Category</th>
+            <th class="p-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="adminRows"></tbody>
+      </table>
+      <div id="tableLoading" class="text-center py-8 text-gray-500">Loading products...</div>
+      <div id="tableEmpty" class="hidden text-center py-8 text-gray-500">No products yet. Add one!</div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-96 mx-4 max-h-[90vh] overflow-y-auto">
+      <h3 id="modalTitle" class="text-lg font-bold mb-4">Add Product</h3>
+      <input id="mTitle" class="border p-2 w-full mb-3 rounded" placeholder="Title *">
+      <input id="mPrice" type="number" step="0.01" class="border p-2 w-full mb-3 rounded" placeholder="Price *">
+      <input id="mImage" class="border p-2 w-full mb-3 rounded" placeholder="Image URL">
+      <input id="mCategory" class="border p-2 w-full mb-3 rounded" placeholder="Category">
+      <textarea id="mDescription" class="border p-2 w-full mb-4 rounded" rows="3" placeholder="Description"></textarea>
+      <div class="flex gap-3 justify-end">
+        <button id="cancelModal" class="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
+        <button id="saveModal" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Save</button>
+      </div>
+      <p id="modalError" class="text-red-500 text-sm mt-3 hidden"></p>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-80 mx-4">
+      <h3 class="text-lg font-bold mb-4">Delete Product</h3>
+      <p class="mb-4 text-gray-600">Are you sure you want to delete this product?</p>
+      <div class="flex gap-3 justify-end">
+        <button id="cancelDelete" class="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
+        <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let editingId = null;
+    let deletingId = null;
+
+    const modal = document.getElementById('modal');
+    const deleteModal = document.getElementById('deleteModal');
+
+    // Load products
+    async function loadProducts() {
+      const tableLoading = document.getElementById('tableLoading');
+      const tableEmpty = document.getElementById('tableEmpty');
+      const tbody = document.getElementById('adminRows');
+
+      try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+
+        tableLoading.classList.add('hidden');
+        tbody.innerHTML = '';
+
+        if (products.length === 0) {
+          tableEmpty.classList.remove('hidden');
+          return;
+        }
+
+        tableEmpty.classList.add('hidden');
+
+        products.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b hover:bg-gray-50';
+          tr.innerHTML = `
+            <td class="p-3">
+              <img src="${p.image || 'https://via.placeholder.com/50'}" class="w-12 h-12 object-cover rounded">
+            </td>
+            <td class="p-3 font-medium">${p.title}</td>
+            <td class="p-3">$${p.price.toFixed(2)}</td>
+            <td class="p-3">${p.category || '-'}</td>
+            <td class="p-3">
+              <button onclick="openEditModal('${p._id}')" class="text-blue-600 hover:underline mr-3">Edit</button>
+              <button onclick="openDeleteModal('${p._id}')" class="text-red-600 hover:underline">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tableLoading.textContent = 'Failed to load products';
+        console.error(err);
+      }
+    }
+
+    // Open add modal
+    document.getElementById('openAdd').addEventListener('click', () => {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = 'Add Product';
+      clearModal();
+      modal.classList.remove('hidden');
+    });
+
+    // Open edit modal
+    async function openEditModal(id) {
+      editingId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Product';
+      clearModal();
+
+      try {
+        const res = await fetch(`/api/products/${id}`);
+        const p = await res.json();
+        document.getElementById('mTitle').value = p.title;
+        document.getElementById('mPrice').value = p.price;
+        document.getElementById('mImage').value = p.image || '';
+        document.getElementById('mCategory').value = p.category || '';
+        document.getElementById('mDescription').value = p.description || '';
+        modal.classList.remove('hidden');
+      } catch (err) {
+        alert('Failed to load product');
+      }
+    }
+
+    // Open delete modal
+    function openDeleteModal(id) {
+      deletingId = id;
+      deleteModal.classList.remove('hidden');
+    }
+
+    // Clear modal fields
+    function clearModal() {
+      document.getElementById('mTitle').value = '';
+      document.getElementById('mPrice').value = '';
+      document.getElementById('mImage').value = '';
+      document.getElementById('mCategory').value = '';
+      document.getElementById('mDescription').value = '';
+      document.getElementById('modalError').classList.add('hidden');
+    }
+
+    // Cancel modal
+    document.getElementById('cancelModal').addEventListener('click', () => {
+      modal.classList.add('hidden');
+    });
+
+    // Save product
+    document.getElementById('saveModal').addEventListener('click', async () => {
+      const title = document.getElementById('mTitle').value.trim();
+      const price = parseFloat(document.getElementById('mPrice').value);
+      const image = document.getElementById('mImage').value.trim();
+      const category = document.getElementById('mCategory').value.trim();
+      const description = document.getElementById('mDescription').value.trim();
+
+      if (!title || isNaN(price)) {
+        const err = document.getElementById('modalError');
+        err.textContent = 'Title and price are required';
+        err.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const body = { title, price, image, category, description };
+        const url = editingId ? `/api/products/${editingId}` : '/api/products';
+        const method = editingId ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to save');
+        }
+
+        modal.classList.add('hidden');
+        loadProducts();
+      } catch (err) {
+        const errEl = document.getElementById('modalError');
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    // Cancel delete
+    document.getElementById('cancelDelete').addEventListener('click', () => {
+      deleteModal.classList.add('hidden');
+      deletingId = null;
+    });
+
+    // Confirm delete
+    document.getElementById('confirmDelete').addEventListener('click', async () => {
+      if (!deletingId) return;
+
+      try {
+        const res = await fetch(`/api/products/${deletingId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete');
+
+        deleteModal.classList.add('hidden');
+        deletingId = null;
+        loadProducts();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    // Close modals on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    });
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal) {
+        deleteModal.classList.add('hidden');
+        deletingId = null;
+      }
+    });
+
+    // Initialize
+    loadProducts();
+  </script>
+</body>
+</html>

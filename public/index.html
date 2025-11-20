@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopSync - Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="container mx-auto p-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold text-purple-600">ShopSync</h1>
+      <div id="authSection">
+        <button id="loginBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Login</button>
+        <button id="logoutBtn" class="hidden px-4 py-2 border border-purple-600 text-purple-600 rounded hover:bg-purple-50">Logout</button>
+        <a href="/admin.html" id="adminLink" class="hidden ml-2 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">Admin</a>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <section class="mb-8">
+      <div class="flex flex-wrap gap-4 mb-6">
+        <select id="categoryFilter" class="border p-2 rounded">
+          <option value="">All categories</option>
+        </select>
+        <input id="search" placeholder="Search products..." class="border p-2 rounded flex-1 min-w-[200px]" />
+      </div>
+
+      <!-- Products Grid -->
+      <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+      <!-- Loading State -->
+      <div id="loading" class="text-center py-12">
+        <p class="text-gray-500">Loading products...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty" class="hidden text-center py-12">
+        <p class="text-gray-500">No products found</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCioU_mx28Bpf2EEfNElHAP3Kc5m12GWFE",
+      authDomain: "shopsync-24069.firebaseapp.com",
+      projectId: "shopsync-24069",
+      storageBucket: "shopsync-24069.firebasestorage.app",
+      messagingSenderId: "401227698484",
+      appId: "1:401227698484:web:e41607996213f73eba5561"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    let allProducts = [];
+
+    // Auth state listener
+    auth.onAuthStateChanged(user => {
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const adminLink = document.getElementById('adminLink');
+
+      if (user) {
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        adminLink.classList.remove('hidden');
+      } else {
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        adminLink.classList.add('hidden');
+      }
+    });
+
+    // Login with Google
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (err) {
+        console.error('Login error:', err);
+        alert('Login failed: ' + err.message);
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await auth.signOut();
+    });
+
+    // Load products from API
+    async function loadProducts() {
+      const loading = document.getElementById('loading');
+      const empty = document.getElementById('empty');
+      const grid = document.getElementById('productsGrid');
+
+      try {
+        const res = await fetch('/api/products');
+        allProducts = await res.json();
+        loading.classList.add('hidden');
+
+        if (allProducts.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          renderProducts(allProducts);
+          populateCategories(allProducts);
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err);
+        loading.innerHTML = '<p class="text-red-500">Failed to load products</p>';
+      }
+    }
+
+    // Render products to grid
+    function renderProducts(list) {
+      const grid = document.getElementById('productsGrid');
+      const filter = document.getElementById('categoryFilter').value;
+      const search = document.getElementById('search').value.toLowerCase();
+      const empty = document.getElementById('empty');
+
+      grid.innerHTML = '';
+
+      const filtered = list.filter(p =>
+        (filter === '' || p.category === filter) &&
+        (p.title.toLowerCase().includes(search) || (p.description || '').toLowerCase().includes(search))
+      );
+
+      if (filtered.length === 0) {
+        empty.classList.remove('hidden');
+      } else {
+        empty.classList.add('hidden');
+      }
+
+      filtered.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow';
+        card.innerHTML = `
+          <img src="${p.image || 'https://via.placeholder.com/300x200?text=No+Image'}"
+               alt="${p.title}"
+               class="w-full h-48 object-cover rounded mb-3">
+          <h3 class="font-semibold text-lg mb-1">${p.title}</h3>
+          <p class="text-purple-600 font-bold text-xl mb-2">$${p.price.toFixed(2)}</p>
+          ${p.category ? `<span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded mb-2">${p.category}</span>` : ''}
+          <p class="text-sm text-gray-600">${p.description || ''}</p>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Populate category filter dropdown
+    function populateCategories(list) {
+      const sel = document.getElementById('categoryFilter');
+      const cats = Array.from(new Set(list.map(p => p.category).filter(Boolean)));
+      sel.innerHTML = '<option value="">All categories</option>' +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+      sel.onchange = () => renderProducts(allProducts);
+      document.getElementById('search').oninput = () => renderProducts(allProducts);
+    }
+
+    // Initialize
+    loadProducts();
+  </script>
+</body>
+</html>
