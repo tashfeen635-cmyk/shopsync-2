@@ -499,13 +499,21 @@
     });
 
     // Login with Google
+    let isLoggingIn = false;
     document.getElementById('loginBtn').addEventListener('click', async () => {
+      if (isLoggingIn) return;
+      isLoggingIn = true;
+
       const provider = new firebase.auth.GoogleAuthProvider();
       try {
         await auth.signInWithPopup(provider);
       } catch (err) {
         console.error('Login error:', err);
-        alert('Login failed: ' + err.message);
+        if (err.code !== 'auth/cancelled-popup-request' && err.code !== 'auth/popup-closed-by-user') {
+          alert('Login failed: ' + err.message);
+        }
+      } finally {
+        isLoggingIn = false;
       }
     });
 
