@@ -7,10 +7,30 @@ const path = require('path');
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin
-const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-service-account.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// Try to load from environment variable first, then fall back to file
+let firebaseInitialized = false;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // Load from environment variable (for Render deployment)
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    firebaseInitialized = true;
+    console.log('Firebase Admin initialized from environment variable');
+  } else {
+    // Try to load from file (for local development)
+    const serviceAccount = require('./firebase-service-account.json');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    firebaseInitialized = true;
+    console.log('Firebase Admin initialized from file');
+  }
+} catch (err) {
+  console.warn('Firebase Admin not initialized:', err.message);
+  console.warn('Admin endpoints will not work, but public endpoints will function');
+}
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -29,6 +49,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Middleware: verify Firebase token
 async function verifyToken(req, res, next) {
+  if (!firebaseInitialized) {
+    return res.status(503).json({ error: 'Firebase Admin not configured' });
+  }
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token' });
