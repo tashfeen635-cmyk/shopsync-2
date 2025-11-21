@@ -5,41 +5,205 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ShopSync - Shop</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out;
+    }
+    /* Gradient text */
+    .gradient-text {
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    /* Card hover effect */
+    .product-card {
+      transition: all 0.3s ease;
+    }
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    /* Button pulse animation */
+    .btn-pulse {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    }
+    /* Smooth scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c084fc;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a855f7;
+    }
+  </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-gray-50 to-purple-50 min-h-screen">
   <div class="container mx-auto p-6">
     <!-- Header -->
-    <header class="flex justify-between items-center mb-8">
-      <h1 class="text-3xl font-bold text-purple-600">ShopSync</h1>
-      <div id="authSection">
-        <button id="loginBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Login</button>
-        <button id="logoutBtn" class="hidden px-4 py-2 border border-purple-600 text-purple-600 rounded hover:bg-purple-50">Logout</button>
-        <a href="/admin.html" id="adminLink" class="hidden ml-2 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">Admin</a>
+    <header class="bg-white rounded-2xl shadow-lg p-6 mb-8 animate-fadeIn">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-4xl font-extrabold gradient-text">ShopSync</h1>
+          <p class="text-gray-500 text-sm mt-1">Your one-stop shop for everything</p>
+        </div>
+        <div id="authSection" class="flex items-center gap-3">
+          <button id="cartBtn" class="relative px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transition-all btn-pulse">
+            🛒 Cart (<span id="cartCount">0</span>)
+          </button>
+          <button id="loginBtn" class="px-5 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 shadow-md hover:shadow-lg transition-all">Login</button>
+          <button id="logoutBtn" class="hidden px-5 py-2.5 border-2 border-purple-500 text-purple-600 rounded-lg hover:bg-purple-50 transition-all">Logout</button>
+          <a href="/admin.html" id="adminLink" class="hidden ml-2 px-5 py-2.5 bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg hover:from-gray-800 hover:to-gray-900 shadow-md hover:shadow-lg transition-all">Admin</a>
+        </div>
       </div>
     </header>
 
     <!-- Filters -->
     <section class="mb-8">
-      <div class="flex flex-wrap gap-4 mb-6">
-        <select id="categoryFilter" class="border p-2 rounded">
-          <option value="">All categories</option>
-        </select>
-        <input id="search" placeholder="Search products..." class="border p-2 rounded flex-1 min-w-[200px]" />
+      <div class="bg-white rounded-xl shadow-md p-4 mb-6 animate-fadeIn">
+        <div class="flex flex-wrap gap-4">
+          <select id="categoryFilter" class="border-2 border-gray-200 p-3 rounded-lg focus:border-purple-500 focus:outline-none transition-colors bg-gray-50">
+            <option value="">All categories</option>
+          </select>
+          <div class="relative flex-1 min-w-[200px]">
+            <input id="search" placeholder="Search products..." class="w-full border-2 border-gray-200 p-3 pl-10 rounded-lg focus:border-purple-500 focus:outline-none transition-colors bg-gray-50" />
+            <svg class="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+        </div>
       </div>
 
       <!-- Products Grid -->
-      <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
 
       <!-- Loading State -->
-      <div id="loading" class="text-center py-12">
-        <p class="text-gray-500">Loading products...</p>
+      <div id="loading" class="text-center py-16">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+        <p class="text-gray-500 mt-4">Loading products...</p>
       </div>
 
       <!-- Empty State -->
-      <div id="empty" class="hidden text-center py-12">
-        <p class="text-gray-500">No products found</p>
+      <div id="empty" class="hidden text-center py-16">
+        <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+        </svg>
+        <p class="text-gray-500 text-lg">No products found</p>
+        <p class="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
       </div>
     </section>
+
+    <!-- Footer -->
+    <footer class="bg-white rounded-2xl shadow-lg p-6 mt-8 text-center">
+      <p class="text-gray-600">Contact us: <a href="https://wa.me/923170885816" class="text-purple-600 hover:underline">+92 317 088 5816</a></p>
+      <p class="text-gray-400 text-sm mt-2">&copy; 2024 ShopSync. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- Add to Cart Notification -->
+  <div id="cartNotification" class="hidden fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg z-50 max-w-sm border-l-4 border-green-600">
+    <div class="flex items-start gap-3">
+      <img id="notifImage" src="" class="w-16 h-16 object-cover rounded">
+      <div class="flex-1">
+        <p class="font-bold text-green-600 mb-1">✓ Added to Cart!</p>
+        <p id="notifTitle" class="font-medium text-sm"></p>
+        <p id="notifPrice" class="text-purple-600 text-sm"></p>
+        <p id="notifQuantity" class="text-gray-500 text-xs mt-1"></p>
+      </div>
+      <button onclick="closeNotification()" class="text-gray-400 hover:text-gray-600">&times;</button>
+    </div>
+    <div class="mt-3 flex gap-2">
+      <button onclick="closeNotification()" class="flex-1 px-3 py-1 text-sm border rounded hover:bg-gray-50">Continue Shopping</button>
+      <button onclick="closeNotification(); document.getElementById('cartBtn').click();" class="flex-1 px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">View Cart</button>
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div id="cartModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">Shopping Cart</h3>
+        <button id="closeCart" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <div id="cartItems" class="mb-4"></div>
+      <div id="cartEmpty" class="text-center py-8 text-gray-500">Your cart is empty</div>
+      <div id="cartTotal" class="hidden border-t pt-4 mb-4">
+        <div class="flex justify-between font-bold text-lg">
+          <span>Total:</span>
+          <span id="totalAmount">$0.00</span>
+        </div>
+      </div>
+      <div id="cartActions" class="hidden flex gap-3">
+        <button id="clearCart" class="flex-1 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">Clear Cart</button>
+        <button id="checkoutBtn" class="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Checkout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Form Modal -->
+  <div id="checkoutModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold">Checkout Details</h3>
+        <button id="closeCheckout" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+
+      <form id="checkoutForm">
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+          <input type="text" id="customerName" class="w-full border p-2 rounded" placeholder="Your full name" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+          <input type="tel" id="customerPhone" class="w-full border p-2 rounded" placeholder="03XX-XXXXXXX" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="customerEmail" class="w-full border p-2 rounded" placeholder="your@email.com">
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Address *</label>
+          <textarea id="customerAddress" class="w-full border p-2 rounded" rows="3" placeholder="Complete delivery address with city" required></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Order Notes (Optional)</label>
+          <textarea id="orderNotes" class="w-full border p-2 rounded" rows="2" placeholder="Any special instructions..."></textarea>
+        </div>
+
+        <div class="border-t pt-4 mb-4">
+          <div class="flex justify-between font-bold text-lg">
+            <span>Total:</span>
+            <span id="checkoutTotal">$0.00</span>
+          </div>
+        </div>
+
+        <p id="checkoutError" class="text-red-500 text-sm mb-3 hidden"></p>
+
+        <div class="flex gap-3">
+          <button type="button" id="backToCart" class="flex-1 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50">Back</button>
+          <button type="submit" class="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Place Order</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Firebase -->
@@ -58,6 +222,259 @@
     const auth = firebase.auth();
 
     let allProducts = [];
+    let cart = JSON.parse(localStorage.getItem('shopSyncCart')) || [];
+
+    // Admin email - only this user sees the admin link
+    const ADMIN_EMAIL = 'tashfeen635@gmail.com';
+
+    // Cart functions
+    function saveCart() {
+      localStorage.setItem('shopSyncCart', JSON.stringify(cart));
+      updateCartCount();
+    }
+
+    function updateCartCount() {
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cartCount').textContent = count;
+    }
+
+    function addToCart(product) {
+      const existing = cart.find(item => item._id === product._id);
+      let quantity = 1;
+      if (existing) {
+        existing.quantity += 1;
+        quantity = existing.quantity;
+      } else {
+        cart.push({ ...product, quantity: 1 });
+      }
+      saveCart();
+      showCartNotification(product, quantity);
+    }
+
+    function showCartNotification(product, quantity) {
+      const notif = document.getElementById('cartNotification');
+      document.getElementById('notifImage').src = product.image || 'https://via.placeholder.com/64';
+      document.getElementById('notifTitle').textContent = product.title;
+      document.getElementById('notifPrice').textContent = `$${product.price.toFixed(2)}`;
+      document.getElementById('notifQuantity').textContent = `Quantity in cart: ${quantity}`;
+
+      notif.classList.remove('hidden');
+
+      // Auto-hide after 4 seconds
+      setTimeout(() => {
+        notif.classList.add('hidden');
+      }, 4000);
+    }
+
+    function closeNotification() {
+      document.getElementById('cartNotification').classList.add('hidden');
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(item => item._id !== productId);
+      saveCart();
+      renderCart();
+    }
+
+    function updateQuantity(productId, change) {
+      const item = cart.find(item => item._id === productId);
+      if (item) {
+        item.quantity += change;
+        if (item.quantity <= 0) {
+          removeFromCart(productId);
+        } else {
+          saveCart();
+          renderCart();
+        }
+      }
+    }
+
+    function clearCart() {
+      cart = [];
+      saveCart();
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartItems = document.getElementById('cartItems');
+      const cartEmpty = document.getElementById('cartEmpty');
+      const cartTotal = document.getElementById('cartTotal');
+      const cartActions = document.getElementById('cartActions');
+      const totalAmount = document.getElementById('totalAmount');
+
+      cartItems.innerHTML = '';
+
+      if (cart.length === 0) {
+        cartEmpty.classList.remove('hidden');
+        cartTotal.classList.add('hidden');
+        cartActions.classList.add('hidden');
+        return;
+      }
+
+      cartEmpty.classList.add('hidden');
+      cartTotal.classList.remove('hidden');
+      cartActions.classList.remove('hidden');
+
+      let total = 0;
+
+      cart.forEach(item => {
+        total += item.price * item.quantity;
+
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 py-3 border-b';
+
+        const img = document.createElement('img');
+        img.src = item.image || 'https://via.placeholder.com/50';
+        img.className = 'w-12 h-12 object-cover rounded';
+
+        const info = document.createElement('div');
+        info.className = 'flex-1';
+
+        const title = document.createElement('p');
+        title.className = 'font-medium text-sm';
+        title.textContent = item.title;
+
+        const price = document.createElement('p');
+        price.className = 'text-purple-600 text-sm';
+        price.textContent = `$${item.price.toFixed(2)} x ${item.quantity}`;
+
+        info.appendChild(title);
+        info.appendChild(price);
+
+        const controls = document.createElement('div');
+        controls.className = 'flex items-center gap-2';
+
+        const minusBtn = document.createElement('button');
+        minusBtn.className = 'w-6 h-6 bg-gray-200 rounded hover:bg-gray-300';
+        minusBtn.textContent = '-';
+        minusBtn.addEventListener('click', () => updateQuantity(item._id, -1));
+
+        const qty = document.createElement('span');
+        qty.className = 'text-sm';
+        qty.textContent = item.quantity;
+
+        const plusBtn = document.createElement('button');
+        plusBtn.className = 'w-6 h-6 bg-gray-200 rounded hover:bg-gray-300';
+        plusBtn.textContent = '+';
+        plusBtn.addEventListener('click', () => updateQuantity(item._id, 1));
+
+        controls.appendChild(minusBtn);
+        controls.appendChild(qty);
+        controls.appendChild(plusBtn);
+
+        div.appendChild(img);
+        div.appendChild(info);
+        div.appendChild(controls);
+
+        cartItems.appendChild(div);
+      });
+
+      totalAmount.textContent = `$${total.toFixed(2)}`;
+    }
+
+    // Cart modal controls
+    document.getElementById('cartBtn').addEventListener('click', () => {
+      renderCart();
+      document.getElementById('cartModal').classList.remove('hidden');
+    });
+
+    document.getElementById('closeCart').addEventListener('click', () => {
+      document.getElementById('cartModal').classList.add('hidden');
+    });
+
+    document.getElementById('cartModal').addEventListener('click', (e) => {
+      if (e.target.id === 'cartModal') {
+        document.getElementById('cartModal').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('clearCart').addEventListener('click', clearCart);
+
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      // Close cart modal and open checkout form
+      document.getElementById('cartModal').classList.add('hidden');
+      document.getElementById('checkoutModal').classList.remove('hidden');
+      document.getElementById('checkoutTotal').textContent = `$${total.toFixed(2)}`;
+    });
+
+    // Checkout form controls
+    document.getElementById('closeCheckout').addEventListener('click', () => {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    });
+
+    document.getElementById('backToCart').addEventListener('click', () => {
+      document.getElementById('checkoutModal').classList.add('hidden');
+      document.getElementById('cartModal').classList.remove('hidden');
+    });
+
+    document.getElementById('checkoutModal').addEventListener('click', (e) => {
+      if (e.target.id === 'checkoutModal') {
+        document.getElementById('checkoutModal').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('customerName').value.trim();
+      const phone = document.getElementById('customerPhone').value.trim();
+      const email = document.getElementById('customerEmail').value.trim();
+      const address = document.getElementById('customerAddress').value.trim();
+      const notes = document.getElementById('orderNotes').value.trim();
+
+      // Validation
+      if (!name || !phone || !address) {
+        const err = document.getElementById('checkoutError');
+        err.textContent = 'Please fill in all required fields';
+        err.classList.remove('hidden');
+        return;
+      }
+
+      const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+      // Create WhatsApp message with customer details
+      let message = `🛒 *NEW ORDER - ShopSync*\n`;
+      message += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+      message += `👤 *Customer Details:*\n`;
+      message += `Name: ${name}\n`;
+      message += `Phone: ${phone}\n`;
+      if (email) message += `Email: ${email}\n`;
+      message += `\n📍 *Delivery Address:*\n${address}\n\n`;
+
+      message += `🛍️ *Order Items:*\n`;
+      cart.forEach(item => {
+        message += `• ${item.title} x${item.quantity} = $${(item.price * item.quantity).toFixed(2)}\n`;
+      });
+
+      message += `\n━━━━━━━━━━━━━━━━━━\n`;
+      message += `📦 Total Items: ${itemCount}\n`;
+      message += `💰 *Total Amount: $${total.toFixed(2)}*\n`;
+
+      if (notes) {
+        message += `\n📝 *Notes:* ${notes}\n`;
+      }
+
+      message += `\n━━━━━━━━━━━━━━━━━━\n`;
+      message += `🕐 Order Time: ${new Date().toLocaleString()}`;
+
+      // Open WhatsApp with message
+      const whatsappUrl = `https://wa.me/923170885816?text=${encodeURIComponent(message)}`;
+
+      // Clear cart and form after successful order
+      cart = [];
+      saveCart();
+      document.getElementById('checkoutForm').reset();
+      document.getElementById('checkoutModal').classList.add('hidden');
+
+      window.open(whatsappUrl, '_blank');
+    });
+
+    // Initialize cart count
+    updateCartCount();
 
     // Auth state listener
     auth.onAuthStateChanged(user => {
@@ -68,7 +485,12 @@
       if (user) {
         loginBtn.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
-        adminLink.classList.remove('hidden');
+        // Only show admin link to the admin email
+        if (user.email === ADMIN_EMAIL) {
+          adminLink.classList.remove('hidden');
+        } else {
+          adminLink.classList.add('hidden');
+        }
       } else {
         loginBtn.classList.remove('hidden');
         logoutBtn.classList.add('hidden');
@@ -135,18 +557,68 @@
         empty.classList.add('hidden');
       }
 
+      // Helper function to escape HTML and prevent XSS
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
       filtered.forEach(p => {
         const card = document.createElement('div');
-        card.className = 'bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow';
-        card.innerHTML = `
-          <img src="${p.image || 'https://via.placeholder.com/300x200?text=No+Image'}"
-               alt="${p.title}"
-               class="w-full h-48 object-cover rounded mb-3">
-          <h3 class="font-semibold text-lg mb-1">${p.title}</h3>
-          <p class="text-purple-600 font-bold text-xl mb-2">$${p.price.toFixed(2)}</p>
-          ${p.category ? `<span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded mb-2">${p.category}</span>` : ''}
-          <p class="text-sm text-gray-600">${p.description || ''}</p>
-        `;
+        card.className = 'product-card bg-white rounded-xl shadow-md overflow-hidden animate-fadeIn';
+
+        // Image container with overlay
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'relative overflow-hidden';
+
+        const img = document.createElement('img');
+        img.src = p.image || 'https://via.placeholder.com/300x200?text=No+Image';
+        img.alt = p.title;
+        img.className = 'w-full h-52 object-cover transition-transform duration-300 hover:scale-110';
+
+        imgContainer.appendChild(img);
+
+        // Category badge on image
+        if (p.category) {
+          const categoryBadge = document.createElement('span');
+          categoryBadge.className = 'absolute top-3 left-3 bg-purple-600 text-white text-xs px-2 py-1 rounded-full shadow';
+          categoryBadge.textContent = p.category;
+          imgContainer.appendChild(categoryBadge);
+        }
+
+        card.appendChild(imgContainer);
+
+        // Content container
+        const content = document.createElement('div');
+        content.className = 'p-4';
+
+        const title = document.createElement('h3');
+        title.className = 'font-bold text-lg text-gray-800 mb-2 line-clamp-1';
+        title.textContent = p.title;
+
+        const price = document.createElement('p');
+        price.className = 'text-2xl font-extrabold gradient-text mb-2';
+        price.textContent = `$${p.price.toFixed(2)}`;
+
+        content.appendChild(title);
+        content.appendChild(price);
+
+        if (p.description) {
+          const desc = document.createElement('p');
+          desc.className = 'text-sm text-gray-500 mb-4 line-clamp-2';
+          desc.textContent = p.description;
+          content.appendChild(desc);
+        }
+
+        // Add to Cart button
+        const addBtn = document.createElement('button');
+        addBtn.className = 'w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg font-semibold';
+        addBtn.textContent = '🛒 Add to Cart';
+        addBtn.addEventListener('click', () => addToCart(p));
+        content.appendChild(addBtn);
+
+        card.appendChild(content);
         grid.appendChild(card);
       });
     }

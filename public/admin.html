@@ -18,10 +18,13 @@
         <div class="absolute inset-0 flex items-center"><div class="w-full border-t"></div></div>
         <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">or</span></div>
       </div>
-      <input id="emailInput" type="email" placeholder="Email" class="w-full border p-2 rounded mb-3">
-      <input id="passwordInput" type="password" placeholder="Password" class="w-full border p-2 rounded mb-3">
+      <input id="emailInput" type="email" placeholder="Email" class="w-full border p-2 rounded mb-3" value="tashfeen635@gmail.com" required>
+      <input id="passwordInput" type="password" placeholder="Password" class="w-full border p-2 rounded mb-3" required>
       <button id="emailLogin" class="w-full px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">
         Sign in with Email
+      </button>
+      <button id="registerBtn" class="w-full px-4 py-2 mt-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50">
+        Create Account
       </button>
       <p id="loginError" class="text-red-500 text-sm mt-3 hidden"></p>
     </div>
@@ -37,6 +40,7 @@
         </div>
         <div class="flex items-center gap-4">
           <span id="userEmail" class="text-sm text-gray-600"></span>
+          <button id="copyUid" class="px-3 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200" title="Copy UID">Copy UID</button>
           <button id="logoutBtn" class="px-3 py-1 border rounded hover:bg-gray-50">Logout</button>
         </div>
       </div>
@@ -110,6 +114,12 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
+    // Use redirect instead of popup to avoid unauthorized domain issues
+    auth.useDeviceLanguage();
+
+    // ADMIN EMAIL - Only this email can access the admin panel
+    const ALLOWED_ADMIN_EMAIL = 'tashfeen635@gmail.com'; // ⚠️ CHANGE THIS TO YOUR GMAIL
+
     let currentUser = null;
     let editingId = null;
     let deletingId = null;
@@ -123,6 +133,13 @@
     // Auth state listener
     auth.onAuthStateChanged(async user => {
       if (user) {
+        // Check if user email is allowed
+        if (user.email !== ALLOWED_ADMIN_EMAIL) {
+          showLoginError(`Access denied. Only ${ALLOWED_ADMIN_EMAIL} can access the admin panel.`);
+          await auth.signOut();
+          return;
+        }
+
         currentUser = user;
         document.getElementById('userEmail').textContent = user.email;
         loginScreen.classList.add('hidden');
@@ -141,18 +158,110 @@
       try {
         await auth.signInWithPopup(provider);
       } catch (err) {
-        showLoginError(err.message);
+        console.error('Google login error:', err);
+        showLoginError(getErrorMessage(err.code));
       }
     });
 
     // Email login
-    document.getElementById('emailLogin').addEventListener('click', async () => {
-      const email = document.getElementById('emailInput').value;
+    async function handleEmailLogin() {
+      const email = document.getElementById('emailInput').value.trim();
       const password = document.getElementById('passwordInput').value;
+
+      // Validation
+      if (!email) {
+        showLoginError('Please enter your email address');
+        return;
+      }
+      if (!password) {
+        showLoginError('Please enter your password');
+        return;
+      }
+      if (password.length < 6) {
+        showLoginError('Password must be at least 6 characters');
+        return;
+      }
+
       try {
         await auth.signInWithEmailAndPassword(email, password);
       } catch (err) {
-        showLoginError(err.message);
+        showLoginError(getErrorMessage(err.code));
+      }
+    }
+
+    document.getElementById('emailLogin').addEventListener('click', handleEmailLogin);
+
+    // Register new user
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+
+      // Validation
+      if (!email) {
+        showLoginError('Please enter your email address');
+        return;
+      }
+      if (!password) {
+        showLoginError('Please enter your password');
+        return;
+      }
+      if (password.length < 6) {
+        showLoginError('Password must be at least 6 characters');
+        return;
+      }
+
+      try {
+        await auth.createUserWithEmailAndPassword(email, password);
+      } catch (err) {
+        showLoginError(getErrorMessage(err.code));
+      }
+    });
+
+    // Enter key support for login
+    document.getElementById('emailInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('passwordInput').focus();
+      }
+    });
+
+    document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleEmailLogin();
+      }
+    });
+
+    // Convert Firebase error codes to user-friendly messages
+    function getErrorMessage(errorCode) {
+      switch (errorCode) {
+        case 'auth/invalid-email':
+          return 'Invalid email address format';
+        case 'auth/user-disabled':
+          return 'This account has been disabled';
+        case 'auth/user-not-found':
+          return 'No account found with this email';
+        case 'auth/wrong-password':
+          return 'Incorrect password';
+        case 'auth/invalid-credential':
+          return 'Invalid email or password';
+        case 'auth/email-already-in-use':
+          return 'An account with this email already exists';
+        case 'auth/weak-password':
+          return 'Password must be at least 6 characters';
+        case 'auth/too-many-requests':
+          return 'Too many attempts. Please try again later';
+        case 'auth/network-request-failed':
+          return 'Network error. Please check your connection';
+        default:
+          return 'Login failed. Please try again';
+      }
+    }
+
+    // Copy UID to clipboard
+    document.getElementById('copyUid').addEventListener('click', () => {
+      if (currentUser) {
+        navigator.clipboard.writeText(currentUser.uid).then(() => {
+          alert('UID copied: ' + currentUser.uid);
+        });
       }
     });
 
@@ -196,18 +305,49 @@
         products.forEach(p => {
           const tr = document.createElement('tr');
           tr.className = 'border-b hover:bg-gray-50';
-          tr.innerHTML = `
-            <td class="p-3">
-              <img src="${p.image || 'https://via.placeholder.com/50'}" class="w-12 h-12 object-cover rounded">
-            </td>
-            <td class="p-3 font-medium">${p.title}</td>
-            <td class="p-3">$${p.price.toFixed(2)}</td>
-            <td class="p-3">${p.category || '-'}</td>
-            <td class="p-3">
-              <button onclick="openEditModal('${p._id}')" class="text-blue-600 hover:underline mr-3">Edit</button>
-              <button onclick="openDeleteModal('${p._id}')" class="text-red-600 hover:underline">Delete</button>
-            </td>
-          `;
+
+          // Create cells safely to prevent XSS
+          const imgCell = document.createElement('td');
+          imgCell.className = 'p-3';
+          const img = document.createElement('img');
+          img.src = p.image || 'https://via.placeholder.com/50';
+          img.className = 'w-12 h-12 object-cover rounded';
+          imgCell.appendChild(img);
+
+          const titleCell = document.createElement('td');
+          titleCell.className = 'p-3 font-medium';
+          titleCell.textContent = p.title;
+
+          const priceCell = document.createElement('td');
+          priceCell.className = 'p-3';
+          priceCell.textContent = `$${p.price.toFixed(2)}`;
+
+          const categoryCell = document.createElement('td');
+          categoryCell.className = 'p-3';
+          categoryCell.textContent = p.category || '-';
+
+          const actionsCell = document.createElement('td');
+          actionsCell.className = 'p-3';
+
+          const editBtn = document.createElement('button');
+          editBtn.className = 'text-blue-600 hover:underline mr-3';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openEditModal(p._id));
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'text-red-600 hover:underline';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => openDeleteModal(p._id));
+
+          actionsCell.appendChild(editBtn);
+          actionsCell.appendChild(deleteBtn);
+
+          tr.appendChild(imgCell);
+          tr.appendChild(titleCell);
+          tr.appendChild(priceCell);
+          tr.appendChild(categoryCell);
+          tr.appendChild(actionsCell);
+
           tbody.appendChild(tr);
         });
       } catch (err) {

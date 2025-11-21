@@ -100,18 +100,49 @@
         products.forEach(p => {
           const tr = document.createElement('tr');
           tr.className = 'border-b hover:bg-gray-50';
-          tr.innerHTML = `
-            <td class="p-3">
-              <img src="${p.image || 'https://via.placeholder.com/50'}" class="w-12 h-12 object-cover rounded">
-            </td>
-            <td class="p-3 font-medium">${p.title}</td>
-            <td class="p-3">$${p.price.toFixed(2)}</td>
-            <td class="p-3">${p.category || '-'}</td>
-            <td class="p-3">
-              <button onclick="openEditModal('${p._id}')" class="text-blue-600 hover:underline mr-3">Edit</button>
-              <button onclick="openDeleteModal('${p._id}')" class="text-red-600 hover:underline">Delete</button>
-            </td>
-          `;
+
+          // Create cells safely to prevent XSS
+          const imgCell = document.createElement('td');
+          imgCell.className = 'p-3';
+          const img = document.createElement('img');
+          img.src = p.image || 'https://via.placeholder.com/50';
+          img.className = 'w-12 h-12 object-cover rounded';
+          imgCell.appendChild(img);
+
+          const titleCell = document.createElement('td');
+          titleCell.className = 'p-3 font-medium';
+          titleCell.textContent = p.title;
+
+          const priceCell = document.createElement('td');
+          priceCell.className = 'p-3';
+          priceCell.textContent = `$${p.price.toFixed(2)}`;
+
+          const categoryCell = document.createElement('td');
+          categoryCell.className = 'p-3';
+          categoryCell.textContent = p.category || '-';
+
+          const actionsCell = document.createElement('td');
+          actionsCell.className = 'p-3';
+
+          const editBtn = document.createElement('button');
+          editBtn.className = 'text-blue-600 hover:underline mr-3';
+          editBtn.textContent = 'Edit';
+          editBtn.addEventListener('click', () => openEditModal(p._id));
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'text-red-600 hover:underline';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => openDeleteModal(p._id));
+
+          actionsCell.appendChild(editBtn);
+          actionsCell.appendChild(deleteBtn);
+
+          tr.appendChild(imgCell);
+          tr.appendChild(titleCell);
+          tr.appendChild(priceCell);
+          tr.appendChild(categoryCell);
+          tr.appendChild(actionsCell);
+
           tbody.appendChild(tr);
         });
       } catch (err) {

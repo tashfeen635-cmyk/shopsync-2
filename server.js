@@ -93,7 +93,8 @@ app.post('/api/products', verifyToken, requireAdmin, async (req, res) => {
     await p.save();
     res.json(p);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to create product' });
+    console.error('Create product error:', err.message);
+    res.status(500).json({ error: 'Failed to create product: ' + err.message });
   }
 });
 
